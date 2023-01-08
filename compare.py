@@ -78,3 +78,26 @@ result = open(output_path, 'w')
 
 tokenizer = AutoTokenizer.from_pretrained('sentence-transformers/bert-base-nli-mean-tokens')
 model = AutoModel.from_pretrained('sentence-transformers/bert-base-nli-mean-tokens')
+for line in source:
+    path1, path2 = list(map(str, line.split()))
+    code_ast1, code_ast2 = make_clean_ast(path1, path2)
+    tokens = tokenizer([code_ast1, code_ast2],
+                          max_length=128,
+                          truncation=True,
+                          padding='max_length',
+                          return_tensors='pt')
+    outputs = model(**tokens)
+    embeddings = outputs.last_hidden_state
+    mask = tokens['attention_mask'].unsqueeze(-1).expand(embeddings.size()).float()
+    masked_embeddings = embeddings * mask
+    summed = torch.sum(masked_embeddings, 1)
+    counted = torch.clamp(mask.sum(1), min=1e-9)
+    mean_pooled = summed / counted
+    mean_pooled = mean_pooled.detach().numpy()
+    scores = np.zeros((mean_pooled.shape[0], mean_pooled.shape[0]))
+    for i in range(mean_pooled.shape[0]):
+        scores[i, :] = cosine_similarity(
+            [mean_pooled[i]],
+            mean_pooled
+        )[0]
+    result.write(str(scores[0][1]) + '\n')
