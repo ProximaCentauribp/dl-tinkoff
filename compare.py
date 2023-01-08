@@ -11,7 +11,6 @@ import numpy as np
 def remove_comments(source):  # Ф-ция удаляющая комментарии
     string = re.sub(re.compile("'''.*?'''", re.DOTALL), "", source)
     string = re.sub(re.compile('""".*?"""', re.DOTALL), "", source)
-    string = re.sub(re.compile("(?<!(['\"]).)#[^\n]*?\n"), "\n", string)
     return string
 
 
